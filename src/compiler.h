@@ -18,13 +18,13 @@
 class ModuleWrapper;
 class FunctionWrapper {
     ModuleWrapper* module;
-    llvm::FunctionType *type;
+    llvm::FunctionType *func_t;
     llvm::Function* function;
     public:
     std::string name;
     std::unordered_map<std::string, llvm::BasicBlock*> blocks{};
 
-    FunctionWrapper(ModuleWrapper* _module, llvm::FunctionType* _type, const std::string& _name);
+    FunctionWrapper(ModuleWrapper* _module, llvm::Type* returnType, const std::string& _name, const std::initializer_list<llvm::Type*>& arguments);
     FunctionWrapper(const FunctionWrapper& copy) = delete;
     FunctionWrapper& operator=(const FunctionWrapper& copy) = delete;
     FunctionWrapper(FunctionWrapper&& move) = delete;
@@ -37,16 +37,24 @@ class ModuleWrapper {
     llvm::LLVMContext Context;
     llvm::Module *M;
     public:
-    llvm::IntegerType* i1_t;
-    llvm::IntegerType* i8_t;
-    llvm::IntegerType* i16_t;
-    llvm::IntegerType* i32_t;
-    llvm::IntegerType* i64_t;
-    llvm::IntegerType* i128_t;
-    llvm::IntegerType* i256_t;
-    llvm::IntegerType* i512_t;
-    llvm::IntegerType* bool_t;
-    llvm::IntegerType* char_t;
+    llvm::Type* void_t;
+    llvm::Type* label_t;
+
+    llvm::Type* bool_t;
+    llvm::Type* i1_t;
+    llvm::Type* char_t;
+    llvm::Type* i8_t;
+    llvm::Type* i16_t;
+    llvm::Type* i32_t;
+    llvm::Type* i64_t;
+    llvm::Type* i128_t;
+    llvm::Type* i256_t;
+    llvm::Type* i512_t;
+
+    llvm::Type* f16_t;
+    llvm::Type* f32_t;
+    llvm::Type* f64_t;
+    llvm::Type* f128_t;
 
     std::string name;
     std::unordered_map<std::string, FunctionWrapper*> functions{};

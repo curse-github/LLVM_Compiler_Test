@@ -1,7 +1,8 @@
 #include "compiler.h"
 
-FunctionWrapper::FunctionWrapper(ModuleWrapper* _module, llvm::FunctionType* _type, const std::string& _name) : module(_module), type(_type), name(_name) {
-    function = llvm::Function::Create(type, llvm::Function::ExternalLinkage, name, module->M);
+FunctionWrapper::FunctionWrapper(ModuleWrapper* _module, llvm::Type* returnType, const std::string& _name, const std::initializer_list<llvm::Type*>& arguments) : module(_module), name(_name) {
+    func_t = llvm::FunctionType::get(returnType, llvm::ArrayRef<llvm::Type*>(arguments), false);
+    function = llvm::Function::Create(func_t, llvm::Function::ExternalLinkage, name, module->M);
     blocks.emplace("Entry", llvm::BasicBlock::Create(module->Context, "Entry", function));
 }
 FunctionWrapper::~FunctionWrapper() {}
@@ -14,6 +15,9 @@ llvm::Instruction* FunctionWrapper::insert(llvm::Instruction* instr, const std::
 
 
 ModuleWrapper::ModuleWrapper(const std::string& _name) : name(_name) {
+    void_t = llvm::Type::getVoidTy(Context);
+    label_t = llvm::Type::getLabelTy(Context);
+
     bool_t = i1_t = llvm::Type::getInt1Ty(Context);
     char_t = i8_t = llvm::Type::getInt8Ty(Context);
     i16_t = llvm::Type::getInt16Ty(Context);
@@ -22,11 +26,16 @@ ModuleWrapper::ModuleWrapper(const std::string& _name) : name(_name) {
     i128_t = llvm::Type::getInt128Ty(Context);
     i256_t = llvm::Type::getIntNTy(Context, 256);
     i512_t = llvm::Type::getIntNTy(Context, 512);
+    
+    f16_t = llvm::Type::getHalfTy(Context);
+    f32_t = llvm::Type::getFloatTy(Context);
+    f64_t = llvm::Type::getDoubleTy(Context);
+    f128_t = llvm::Type::getFP128Ty(Context);
+    
 
     M = new llvm::Module(name, Context);
-    M->setTargetTriple(llvm::Triple(llvm::sys::getDefaultTargetTriple()+"19.37.32825"));
-    llvm::FunctionType *mainType = llvm::FunctionType::get(i32_t, false);
-    functions["main"] = new FunctionWrapper(this, mainType, "main");
+    M->setTargetTriple(llvm::Triple(llvm::sys::getDefaultTargetTriple()));
+    functions["main"] = new FunctionWrapper(this, i32_t, "main", {i32_t, llvm::ArrayType::get(llvm::ArrayType::get(char_t, 0), 0)});
 }
 ModuleWrapper::~ModuleWrapper() {
     std::error_code EC;
