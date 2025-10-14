@@ -6,6 +6,9 @@ clang++ ./lib/stdLibLin.ll -c -o ./out/stdLib.o
 includedir="$(llvm-config --includedir)"
 libdir="$(llvm-config --libdir)"
 libs="$(llvm-config --link-static --ldflags --libs core bitwriter irreader profiledata object support debuginfodwarf textapi)"
-clang++ -fdeclspec -std=c++23 -O3 ./src/compiler.cpp -L$libdir $libs -I$includedir -I./include -D_LINUX=1 -o ./out/compiler.out
-./out/compiler.out module
-clang++ -O3 ./out/module.ll ./out/cppStdLib.o ./out/stdLib.o -o ./out/module.out
+clang++ -fdeclspec -std=c++23 -O3 ./src/simpleCompiler.cpp -L$libdir $libs -I$includedir -I./include -D_LINUX=1 -o ./out/simpleCompiler.out
+# clang++ -fdeclspec -std=c++23 -O3 ./src/compiler.cpp -L$libdir $libs -I$includedir -I./include -D_LINUX=1 -o ./out/compiler.out
+./out/simpleCompiler.out simpleModule
+# ./out/compiler.out module
+# clang++ -O3 ./out/module.ll ./out/cppStdLib.o ./out/stdLib.o -o ./out/module.out
+clang++ -O3 ./out/simpleModule.ll ./out/cppStdLib.o ./out/stdLib.o -o ./out/simpleModule.out

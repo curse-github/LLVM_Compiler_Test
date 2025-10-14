@@ -10,7 +10,7 @@ FunctionWrapper::FunctionWrapper(ModuleWrapper* _module, llvm::Type* returnType,
         i++;
     }
     func_t = llvm::FunctionType::get(returnType, llvm::ArrayRef<llvm::Type*>(argumentTypes.data(), argumentTypes.data()+argumentTypes.size()), false);
-    function = llvm::Function::Create(func_t, llvm::Function::ExternalLinkage, name, module->M);
+    function = llvm::Function::Create(func_t, llvm::Function::ExternalLinkage, name, module->Module);
     i = 0;
     for (llvm::Argument& arg : function->args()) {
         arg.setName(argumentNames[i]);
@@ -33,10 +33,10 @@ void FunctionWrapper::insertStore(const std::string& varName, const std::string&
     insert(new StoreInst(getVar(varName), getVar(ptr), nullptr));
 }
 void FunctionWrapper::insertBr(const std::string& branchBlockName) {
-    insert(BranchInst::Create(getBlock(branchBlockName)));
+    insert(llvm::BranchInst::Create(getBlock(branchBlockName)));
 }
 void FunctionWrapper::insertBr(llvm::Value* condition, const std::string& trueBranchBlockName, const std::string& falseBranchBlockName) {
-    insert(BranchInst::Create(getBlock(trueBranchBlockName), getBlock(falseBranchBlockName), condition));
+    insert(llvm::BranchInst::Create(getBlock(trueBranchBlockName), getBlock(falseBranchBlockName), condition));
 }
 void FunctionWrapper::insertCall(const std::string& varName, const std::string& function, std::initializer_list<llvm::Value*> arguments) {
     insert(varName, module->getFunction(function).call(varName, arguments));
@@ -111,19 +111,19 @@ ModuleWrapper::ModuleWrapper(const std::string& _name) : name(_name) {
     fp64_t = llvm::Type::getDoubleTy(Context);
     fp128_t = llvm::Type::getFP128Ty(Context);
     
-    M = new llvm::Module(name, Context);
+    Module = new llvm::Module(name, Context);
     // for some reason this part of the libr ary works slightly different on each
 #if defined(_WINDOWS) and _WINDOWS==1
-    M->setTargetTriple(llvm::Triple(llvm::sys::getDefaultTargetTriple()));
+    Module->setTargetTriple(llvm::Triple(llvm::sys::getDefaultTargetTriple()));
 #elif defined (_LINUX) and _LINUX==1
-    M->setTargetTriple(llvm::sys::getDefaultTargetTriple());
+    Module->setTargetTriple(llvm::sys::getDefaultTargetTriple());
 #endif
 }
 ModuleWrapper::~ModuleWrapper() {
     std::error_code EC;
     llvm::raw_fd_ostream outFile("./out/" + name + ".ll", EC);
-    M->print(outFile, nullptr);
-    delete M;
+    Module->print(outFile, nullptr);
+    delete Module;
 }
 
 FunctionWrapper& ModuleWrapper::createFunction(llvm::Type* returnType, const std::string& name, const std::initializer_list<std::pair<std::string, llvm::Type*>>& arguments) {
@@ -135,7 +135,7 @@ FunctionWrapper& ModuleWrapper::getFunction(const std::string& name) {
     return *functions[name];
 }
 void ModuleWrapper::createGlobalStr(const std::string& varName, const std::string& value) {
-    GlobalVariable* str = new GlobalVariable(*M, llvm::ArrayType::get(char_t, static_cast<unsigned int>(value.size())+1u), true, GlobalValue::PrivateLinkage, 0, varName);
+    GlobalVariable* str = new GlobalVariable(*Module, llvm::ArrayType::get(char_t, static_cast<unsigned int>(value.size())+1u), true, GlobalValue::PrivateLinkage, 0, varName);
     str->setInitializer(ConstantDataArray::getString(Context, value, true));
     globals[varName] = str;
 }

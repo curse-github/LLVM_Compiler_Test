@@ -46,7 +46,7 @@ struct OwnedPointer {
 class ModuleWrapper;
 class FunctionWrapper {
     ModuleWrapper* module;
-    llvm::FunctionType *func_t;
+    llvm::FunctionType* func_t;
     std::string name;
     llvm::Function* function;
     std::unordered_map<std::string, llvm::BasicBlock*> blocks{};
@@ -87,7 +87,7 @@ private:
 };
 class ModuleWrapper {
     llvm::LLVMContext Context;
-    llvm::Module *M;
+    llvm::Module *Module;
     public:
     llvm::Type* void_t;
     llvm::Type* ptr_t;
