@@ -20,9 +20,6 @@ FunctionWrapper::FunctionWrapper(ModuleWrapper* _module, llvm::Type* returnType,
 }
 FunctionWrapper::~FunctionWrapper() {}
 
-void FunctionWrapper::addBlock(const std::string& name) {
-    blocks.emplace(name, llvm::BasicBlock::Create(module->Context, name, function));
-}
 void FunctionWrapper::insertICmp(const std::string& varName, llvm::Value* A, const llvm::CmpInst::Predicate& op, llvm::Value* B) {
     insert(varName, ICmpInst::Create(llvm::Instruction::OtherOps::ICmp, op, A, B, varName));
 }
@@ -30,16 +27,16 @@ void FunctionWrapper::insertGetElementPtr(const std::string& varName, llvm::Type
     insert(varName, llvm::GetElementPtrInst::Create(varType, getVar(ptr), indices, llvm::GEPNoWrapFlags::none(), varName, nullptr));
 }
 void FunctionWrapper::insertLoad(const std::string& varName, llvm::Type* ptrType, const std::string& ptr) {
-    vars[varName] = new llvm::LoadInst(ptrType, getVar(ptr), varName, blocks[activeBlock]);
+    vars[varName] = new llvm::LoadInst(ptrType, getVar(ptr), varName, getBlock(activeBlock));
 }
 void FunctionWrapper::insertStore(const std::string& varName, const std::string& ptr) {
     insert(new StoreInst(getVar(varName), getVar(ptr), nullptr));
 }
-void FunctionWrapper::insertBr(const std::string& branchactiveBlock) {
-    insert(BranchInst::Create(blocks[branchactiveBlock]));
+void FunctionWrapper::insertBr(const std::string& branchBlockName) {
+    insert(BranchInst::Create(getBlock(branchBlockName)));
 }
-void FunctionWrapper::insertBr(llvm::Value* condition, const std::string& trueBranchactiveBlock, const std::string& falseBranchactiveBlock) {
-    insert(BranchInst::Create(blocks[trueBranchactiveBlock], blocks[falseBranchactiveBlock], condition));
+void FunctionWrapper::insertBr(llvm::Value* condition, const std::string& trueBranchBlockName, const std::string& falseBranchBlockName) {
+    insert(BranchInst::Create(getBlock(trueBranchBlockName), getBlock(falseBranchBlockName), condition));
 }
 void FunctionWrapper::insertCall(const std::string& varName, const std::string& function, std::initializer_list<llvm::Value*> arguments) {
     insert(varName, module->getFunction(function).call(varName, arguments));
@@ -55,7 +52,15 @@ llvm::Value* FunctionWrapper::getVar(const std::string& name) {
     if (vars.count(name) == 0) return module->getVar(name);
     return vars[name];
 }
+void FunctionWrapper::addBlock(const std::string& name) {
+    blocks.emplace(name, llvm::BasicBlock::Create(module->Context, name, function));
+}
+llvm::BasicBlock* FunctionWrapper::getBlock(const std::string& name) {
+    if (blocks.count(name) == 0) blocks.emplace(name, llvm::BasicBlock::Create(module->Context, name, function));
+    return blocks[name];
+}
 void FunctionWrapper::setActiveBlock(const std::string& name) {
+    if (blocks.count(name) == 0) blocks.emplace(name, llvm::BasicBlock::Create(module->Context, name, function));
     activeBlock = name;
 }
 
@@ -64,7 +69,7 @@ void FunctionWrapper::insert(const std::string& varName, llvm::Instruction* inst
     vars[varName] = insert(instr);
 }
 llvm::Instruction* FunctionWrapper::insert(llvm::Instruction* instr) {
-    if (activeBlock == "_____") throw std::runtime_error("no active block assigned");
+    if (activeBlock == "_____") setActiveBlock("");
     llvm::BasicBlock*& block = blocks[activeBlock];
     instr->insertInto(block, block->end());
     return instr;
@@ -107,7 +112,12 @@ ModuleWrapper::ModuleWrapper(const std::string& _name) : name(_name) {
     fp128_t = llvm::Type::getFP128Ty(Context);
     
     M = new llvm::Module(name, Context);
+    // for some reason this part of the libr ary works slightly different on each
+#if defined(_WINDOWS) and _WINDOWS==1
+    M->setTargetTriple(llvm::Triple(llvm::sys::getDefaultTargetTriple()));
+#elif defined (_LINUX) and _LINUX==1
     M->setTargetTriple(llvm::sys::getDefaultTargetTriple());
+#endif
 }
 ModuleWrapper::~ModuleWrapper() {
     std::error_code EC;
@@ -188,12 +198,6 @@ int main(int argc, char** argv) {
     addStdLib(module);
     module.createGlobalStr("str0", "program requires at least 1 argument.");
     FunctionWrapper& mainFunc = module.createFunction(module.i32_t, "main", {{"argc", module.i32_t},{"argv", module.ptr_t}});
-    mainFunc.addBlock("");
-    mainFunc.addBlock("if.0");
-    mainFunc.addBlock("err.0");
-    mainFunc.addBlock("ret");
-
-    mainFunc.setActiveBlock("");
     mainFunc.insertICmp("cond", mainFunc.getVar("argc"), llvm::ICmpInst::Predicate::FCMP_ULT, module.getUI32(2));
     mainFunc.insertBr(mainFunc.getVar("cond"), "err.0", "if.0");
 

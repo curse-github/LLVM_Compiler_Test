@@ -62,7 +62,6 @@ class FunctionWrapper {
     void insertUnaryOperator(const std::string& varName, const llvm::Instruction::UnaryOps& op, llvm::Value* A);
     void insertBinaryOperator(const std::string& varName, const llvm::Instruction::BinaryOps& op, llvm::Value* A, llvm::Value* B);
 
-    void addBlock(const std::string& name);
     // accepts:
     //     llvm::CmpInst::Predicate::FCMP_ULT
     void insertICmp(const std::string& varName, llvm::Value* A, const llvm::CmpInst::Predicate& op, llvm::Value* B);
@@ -76,6 +75,8 @@ class FunctionWrapper {
     void insertReturn(llvm::Value* value);
 
     llvm::Value* getVar(const std::string& name);
+    void addBlock(const std::string& name);
+    llvm::BasicBlock* getBlock(const std::string& name);
     std::string activeBlock = "_____";
     void setActiveBlock(const std::string& name);
 private:
