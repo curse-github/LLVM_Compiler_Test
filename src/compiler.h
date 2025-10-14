@@ -51,29 +51,36 @@ class FunctionWrapper {
     llvm::Function* function;
     std::unordered_map<std::string, llvm::BasicBlock*> blocks{};
     std::unordered_map<std::string, llvm::Value*> vars{};
-    bool hasBody = false;
     public:
 
-    FunctionWrapper(ModuleWrapper* _module, llvm::Type* returnType, const std::string& _name, const std::unordered_map<std::string, llvm::Type*>& arguments, const bool& _hasBody);
+    FunctionWrapper(ModuleWrapper* _module, llvm::Type* returnType, const std::string& _name, const std::initializer_list<std::pair<std::string, llvm::Type*>>& arguments);
     FunctionWrapper(const FunctionWrapper& copy) = delete;
     FunctionWrapper& operator=(const FunctionWrapper& copy) = delete;
     FunctionWrapper(FunctionWrapper&& move) = delete;
     FunctionWrapper& operator=(FunctionWrapper&& move) = delete;
     ~FunctionWrapper();
-    void insertUnaryOperator(const std::string& varName, const llvm::Instruction::UnaryOps& op, llvm::Value* A, const std::string& blockName="");
-    void insertBinaryOperator(const std::string& varName, const llvm::Instruction::BinaryOps& op, llvm::Value* A, llvm::Value* B, const std::string& blockName="");
+    void insertUnaryOperator(const std::string& varName, const llvm::Instruction::UnaryOps& op, llvm::Value* A);
+    void insertBinaryOperator(const std::string& varName, const llvm::Instruction::BinaryOps& op, llvm::Value* A, llvm::Value* B);
 
-    void insertGetElementPtr(const std::string& varName, llvm::Type* varType, const std::string& ptr, const std::initializer_list<llvm::Value*>& indices, const std::string& blockName="");
-    void insertLoad(const std::string& varName, llvm::Type* ptrType, const std::string& ptr, const std::string& blockName="");
-    void insertStore(const std::string& varName, llvm::Value* ptr, const std::string& blockName="");
+    void addBlock(const std::string& name);
+    // accepts:
+    //     llvm::CmpInst::Predicate::FCMP_ULT
+    void insertICmp(const std::string& varName, llvm::Value* A, const llvm::CmpInst::Predicate& op, llvm::Value* B);
+    void insertGetElementPtr(const std::string& varName, llvm::Type* varType, const std::string& ptr, const std::initializer_list<llvm::Value*>& indices);
+    void insertLoad(const std::string& varName, llvm::Type* ptrType, const std::string& ptr);
+    void insertStore(const std::string& varName, const std::string& ptr);
+    void insertBr(const std::string& branchBlockName);
+    void insertBr(llvm::Value* condition, const std::string& trueBranchBlockName, const std::string& falseBranchBlockName);
     void insertCall(const std::string& varName, const std::string& function, std::initializer_list<llvm::Value*> arguments={});
     void insertCall(const std::string& function, std::initializer_list<llvm::Value*> arguments={});
-    void insertReturn(llvm::Value* value, const std::string& blockName="");
+    void insertReturn(llvm::Value* value);
 
     llvm::Value* getVar(const std::string& name);
+    std::string activeBlock = "_____";
+    void setActiveBlock(const std::string& name);
 private:
-    void insert(const std::string& varName, llvm::Instruction* instr, const std::string& blockName="");
-    llvm::Instruction* insert(llvm::Instruction* instr, const std::string& blockName="");
+    void insert(const std::string& varName, llvm::Instruction* instr);
+    llvm::Instruction* insert(llvm::Instruction* instr);
     llvm::Instruction* call(const std::string& varName, std::initializer_list<llvm::Value*> arguments={});
     llvm::Instruction* call(std::initializer_list<llvm::Value*> arguments={});
 };
@@ -103,6 +110,9 @@ class ModuleWrapper {
 
     std::string name;
     std::unordered_map<std::string, OwnedPointer<FunctionWrapper>> functions{};
+    std::unordered_map<std::string, llvm::Value*> globals{};
+    std::unordered_map<unsigned int, llvm::Value*> i32constants{};
+    std::unordered_map<unsigned long long int, llvm::Value*> i64constants{};
 
     ModuleWrapper(const std::string& _name);
     ModuleWrapper(const ModuleWrapper& copy) = delete;
@@ -111,8 +121,14 @@ class ModuleWrapper {
     ModuleWrapper& operator=(ModuleWrapper&& move) = delete;
     ~ModuleWrapper();
 
-    FunctionWrapper& createFunction(llvm::Type* returnType, const std::string& name, const std::unordered_map<std::string, llvm::Type*>& arguments, const bool& hasBody);
+    FunctionWrapper& createFunction(llvm::Type* returnType, const std::string& name, const std::initializer_list<std::pair<std::string, llvm::Type*>>& arguments);
     FunctionWrapper& getFunction(const std::string& name);
+    void createGlobalStr(const std::string& varName, const std::string& value);
+    llvm::Value* getVar(const std::string& name);
+    llvm::Value* getI32(const int& i);
+    llvm::Value* getI64(const long long int& i);
+    llvm::Value* getUI32(const unsigned int& i);
+    llvm::Value* getUI64(const unsigned long long int& i);
     
     friend FunctionWrapper;
 };

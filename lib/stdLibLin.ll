@@ -2,25 +2,25 @@ target datalayout = "e-m:w-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:
 target triple = "x86_64-pc-linux-gnu"
 
 ; importing these from another file and wrapping them
-declare dso_local void @print(t noundef) local_unnamed_addr #0; char
-declare dso_local void @print(t noundef) local_unnamed_addr #0; str
-declare dso_local void @print(t noundef) local_unnamed_addr #0; uint32
-declare dso_local void @print(t noundef) local_unnamed_addr #0; uint64
-declare dso_local void @print(t noundef) local_unnamed_addr #0; int32
-declare dso_local void @print(t noundef) local_unnamed_addr #0; int64
-declare dso_local void @print(t noundef) local_unnamed_addr #0; float
-declare dso_local void @print(t noundef) local_unnamed_addr #0; double
-;declare dso_local void @print(t noundef) local_unnamed_addr #0; fp128
-declare dso_local void @printLn(t noundef) local_unnamed_addr #0; char nl
-declare dso_local void @printLn(t noundef) local_unnamed_addr #0; str nl
-declare dso_local void @printLn(t noundef) local_unnamed_addr #0; uint32 nl
-declare dso_local void @printLn(t noundef) local_unnamed_addr #0; uint64 nl
-declare dso_local void @printLn(t noundef) local_unnamed_addr #0; int32 nl
-declare dso_local void @printLn(t noundef) local_unnamed_addr #0; int64 nl
-declare dso_local void @printLn(t noundef) local_unnamed_addr #0; float nl
-declare dso_local void @printLn(t noundef) local_unnamed_addr #0; double nl
-;declare dso_local void @printLn(t noundef) local_unnamed_addr #0; fp128 nl
-declare dso_local void @printLn() local_unnamed_addr #0; nl
+declare dso_local void @_Z5printc(i8 noundef) local_unnamed_addr #0; char
+declare dso_local void @_Z5printPKc(ptr noundef) local_unnamed_addr #0; str
+declare dso_local void @_Z5printj(i32 noundef) local_unnamed_addr #0; uint32
+declare dso_local void @_Z5printy(i64 noundef) local_unnamed_addr #0; uint64
+declare dso_local void @_Z5printi(i32 noundef) local_unnamed_addr #0; int32
+declare dso_local void @_Z5printx(i64 noundef) local_unnamed_addr #0; int64
+declare dso_local void @_Z5printf(float noundef) local_unnamed_addr #0; float
+declare dso_local void @_Z5printd(double noundef) local_unnamed_addr #0; double
+;declare dso_local void @_Z5print(t noundef) local_unnamed_addr #0; fp128
+declare dso_local void @_Z7printlnc(i8 noundef) local_unnamed_addr #0; char nl
+declare dso_local void @_Z7printlnPKc(ptr noundef) local_unnamed_addr #0; str nl
+declare dso_local void @_Z7printlnj(i32 noundef) local_unnamed_addr #0; uint32 nl
+declare dso_local void @_Z7printlny(i64 noundef) local_unnamed_addr #0; uint64 nl
+declare dso_local void @_Z7printlni(i32 noundef) local_unnamed_addr #0; int32 nl
+declare dso_local void @_Z7printlnx(i64 noundef) local_unnamed_addr #0; int64 nl
+declare dso_local void @_Z7printlnf(float noundef) local_unnamed_addr #0; float nl
+declare dso_local void @_Z7printlnd(double noundef) local_unnamed_addr #0; double nl
+;declare dso_local void @_Z7println(t noundef) local_unnamed_addr #0; fp128 nl
+declare dso_local void @_Z7printlnv() local_unnamed_addr #0; nl
 
 declare dso_local i32 @_Z8strToIntPKc(ptr noundef) local_unnamed_addr #0
 declare dso_local i32 @_Z9strToUIntPKc(ptr noundef) local_unnamed_addr #0
@@ -46,7 +46,7 @@ define dso_local void @printInt(i32 noundef %in0) local_unnamed_addr #0 {
     ret void
 }
 define dso_local void @printInt64(i64 noundef %in0) local_unnamed_addr #0 {
-    ; tail call void (i64 noundef %in0)
+    tail call void @_Z5printx(i64 noundef %in0)
     ret void
 }
 define dso_local void @printFloat(float noundef %in0) local_unnamed_addr #0 {
@@ -54,7 +54,7 @@ define dso_local void @printFloat(float noundef %in0) local_unnamed_addr #0 {
     ret void
 }
 define dso_local void @printDouble(double noundef %in0) local_unnamed_addr #0 {
-    ; tail call void (double noundef %in0)
+    tail call void @_Z5printd(double noundef %in0)
     ret void
 }
 define dso_local void @printUInt128(i128 noundef %in) local_unnamed_addr #0 {
@@ -246,47 +246,43 @@ loop2Bottom:
     ; return
     ret void
 }
-define dso_local void @printLnChar(i8 noundef %in0) local_unnamed_addr #0 {
-    tail call void @_Z5printLnc(i8 noundef %in0)
+define dso_local void @printlnChar(i8 noundef %in0) local_unnamed_addr #0 {
+    tail call void @_Z7printlnc(i8 noundef %in0)
     ret void
 }
-define dso_local void @printLnStr(ptr noundef %in0) local_unnamed_addr #0 {
-    tail call void @_Z5printLnPKc(ptr noundef %in0)
+define dso_local void @printlnStr(ptr noundef %in0) local_unnamed_addr #0 {
+    tail call void @_Z7printlnPKc(ptr noundef %in0)
     ret void
 }
-define dso_local void @printLnUInt(i32 noundef %in0) local_unnamed_addr #0 {
-    tail call void @_Z5printLnj(i32 noundef %in0)
+define dso_local void @printlnUInt(i32 noundef %in0) local_unnamed_addr #0 {
+    tail call void @_Z7printlnj(i32 noundef %in0)
     ret void
 }
-define dso_local void @printLnUInt64(i64 noundef %in0) local_unnamed_addr #0 {
-<<<<<<< HEAD
-    ; tail call void (i64 noundef %in0)
-=======
+define dso_local void @printlnUInt64(i64 noundef %in0) local_unnamed_addr #0 {
     tail call void @_Z7printlny(i64 noundef %in0)
->>>>>>> 42f0d8257d180b810a0823310fc1c7cb4c3fca63
     ret void
 }
-define dso_local void @printLnInt(i32 noundef %in0) local_unnamed_addr #0 {
-    tail call void @_Z5printLni(i32 noundef %in0)
+define dso_local void @printlnInt(i32 noundef %in0) local_unnamed_addr #0 {
+    tail call void @_Z7printlni(i32 noundef %in0)
     ret void
 }
-define dso_local void @printLnInt64(i64 noundef %in0) local_unnamed_addr #0 {
-    ; tail call void (i64 noundef %in0)
+define dso_local void @printlnInt64(i64 noundef %in0) local_unnamed_addr #0 {
+    tail call void @_Z7printlnx(i64 noundef %in0)
     ret void
 }
-define dso_local void @printLnFloat(float noundef %in0) local_unnamed_addr #0 {
-    tail call void @_Z5printLnf(float noundef %in0)
+define dso_local void @printlnFloat(float noundef %in0) local_unnamed_addr #0 {
+    tail call void @_Z7printlnf(float noundef %in0)
     ret void
 }
-define dso_local void @printLnDouble(double noundef %in0) local_unnamed_addr #0 {
-    ; tail call void (double noundef %in0)
+define dso_local void @printlnDouble(double noundef %in0) local_unnamed_addr #0 {
+    tail call void @_Z7printlnd(double noundef %in0)
     ret void
 }
-define dso_local void @printLn() local_unnamed_addr #0 {
+define dso_local void @println() local_unnamed_addr #0 {
     tail call void @_Z7printlnv()
     ret void
 }
-define dso_local void @printLnUInt128(i128 noundef %in) local_unnamed_addr #0 {
+define dso_local void @printlnUInt128(i128 noundef %in) local_unnamed_addr #0 {
     ; char chars[39]
     ; char* charsRunningP = chars;
     %chars = alloca [39 x i8]
@@ -347,11 +343,11 @@ loop2Increment:
     br label %loop2Top
 loop2Bottom:
     ; std::cout << '\n'
-    tail call void @printLn()
+    tail call void @println()
     ; return
     ret void
 }
-define dso_local void @printLnUInt256(i256 noundef %in) local_unnamed_addr #0 {
+define dso_local void @printlnUInt256(i256 noundef %in) local_unnamed_addr #0 {
     ; char chars[78]
     ; char* charsRunningP = chars;
     %chars = alloca [78 x i8]
@@ -412,11 +408,11 @@ loop2Increment:
     br label %loop2Top
 loop2Bottom:
     ; std::cout << '\n'
-    tail call void @printLn()
+    tail call void @println()
     ; return
     ret void
 }
-define dso_local void @printLnUInt512(i512 noundef %in) local_unnamed_addr #0 {
+define dso_local void @printlnUInt512(i512 noundef %in) local_unnamed_addr #0 {
     ; char chars[155]
     ; char* charsRunningP = chars;
     %chars = alloca [155 x i8]
@@ -477,7 +473,7 @@ loop2Increment:
     br label %loop2Top
 loop2Bottom:
     ; std::cout << '\n'
-    tail call void @printLn()
+    tail call void @println()
     ; return
     ret void
 }

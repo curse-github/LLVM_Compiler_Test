@@ -5,7 +5,8 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "${workspaceFolder}/include/**",
-                "${workspaceFolder}/../builds/llvm-build/include/**"
+                "${workspaceFolder}/../builds/llvm-build/include/**",
+                "/usr/lib/llvm-20/include"
             ],
             "defines": [
                 "_DEBUG",
