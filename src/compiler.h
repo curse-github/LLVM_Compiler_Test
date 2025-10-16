@@ -52,6 +52,7 @@ class FunctionWrapper {
     std::unordered_map<std::string, llvm::BasicBlock*> blocks{};
     std::unordered_map<std::string, llvm::Value*> vars{};
     public:
+    unsigned int lastConditionIndex = 0;
 
     FunctionWrapper(ModuleWrapper* _module, llvm::Type* returnType, const std::string& _name, const std::initializer_list<std::pair<std::string, llvm::Type*>>& arguments);
     FunctionWrapper(const FunctionWrapper& copy) = delete;
@@ -59,31 +60,42 @@ class FunctionWrapper {
     FunctionWrapper(FunctionWrapper&& move) = delete;
     FunctionWrapper& operator=(FunctionWrapper&& move) = delete;
     ~FunctionWrapper();
-    void insertUnaryOperator(const std::string& varName, const llvm::Instruction::UnaryOps& op, llvm::Value* A);
-    void insertBinaryOperator(const std::string& varName, const llvm::Instruction::BinaryOps& op, llvm::Value* A, llvm::Value* B);
 
+    llvm::Value* getVarOrNumber(const std::string& str);
+    llvm::Value* insertAdd(const std::string& varName, const std::string& A, const std::string& B);
+    llvm::Value* insertSub(const std::string& varName, const std::string& A, const std::string& B);
+    llvm::Value* insertMul(const std::string& varName, const std::string& A, const std::string& B);
+    llvm::Value* insertUDiv(const std::string& varName, const std::string& A, const std::string& B);
+    llvm::Value* insertUMod(const std::string& varName, const std::string& A, const std::string& B);
     // accepts:
     //     llvm::CmpInst::Predicate::FCMP_ULT
-    void insertICmp(const std::string& varName, llvm::Value* A, const llvm::CmpInst::Predicate& op, llvm::Value* B);
-    void insertGetElementPtr(const std::string& varName, llvm::Type* varType, const std::string& ptr, const std::initializer_list<llvm::Value*>& indices);
-    void insertLoad(const std::string& varName, llvm::Type* ptrType, const std::string& ptr);
+    //     llvm::CmpInst::Predicate::FCMP_ULE
+    //     llvm::CmpInst::Predicate::FCMP_UEQ
+    //     llvm::CmpInst::Predicate::FCMP_UGE
+    //     llvm::CmpInst::Predicate::FCMP_UGT
+    //     llvm::CmpInst::Predicate::FCMP_UNE
+    llvm::Value* insertICmp(const std::string& varName, const std::string& A, const llvm::CmpInst::Predicate& op, const std::string& B);
+    llvm::Value* insertGetElementPtr(const std::string& varName, llvm::Type* varType, const std::string& ptr, std::initializer_list<const char*> indices);
+    llvm::Value* insertLoad(const std::string& varName, llvm::Type* ptrType, const std::string& ptr);
     void insertStore(const std::string& varName, const std::string& ptr);
-    void insertBr(const std::string& branchBlockName);
-    void insertBr(llvm::Value* condition, const std::string& trueBranchBlockName, const std::string& falseBranchBlockName);
-    void insertCall(const std::string& varName, const std::string& function, std::initializer_list<llvm::Value*> arguments={});
-    void insertCall(const std::string& function, std::initializer_list<llvm::Value*> arguments={});
-    void insertReturn(llvm::Value* value);
+    llvm::Value* insertBr(const std::string& branchBlockName);
+    llvm::Value* insertBr(const std::string& condition, const std::string& trueBranchBlockName, const std::string& falseBranchBlockName);
+    llvm::Value* insertCall(const std::string& varName, const std::string& function, std::initializer_list<const char*> arguments={});
+    llvm::Value* insertCall(const std::string& function, std::initializer_list<const char*> arguments={});
+    llvm::Value* insertReturn(const std::string& value);
 
     llvm::Value* getVar(const std::string& name);
     void addBlock(const std::string& name);
     llvm::BasicBlock* getBlock(const std::string& name);
-    std::string activeBlock = "_____";
     void setActiveBlock(const std::string& name);
 private:
-    void insert(const std::string& varName, llvm::Instruction* instr);
+    std::string activeBlock = "_____";
     llvm::Instruction* insert(llvm::Instruction* instr);
-    llvm::Instruction* call(const std::string& varName, std::initializer_list<llvm::Value*> arguments={});
-    llvm::Instruction* call(std::initializer_list<llvm::Value*> arguments={});
+    llvm::Value* insert(const std::string& varName, llvm::Instruction* instr);
+    llvm::Value* insertUnaryOperator(const std::string& varName, const llvm::Instruction::UnaryOps& op, const std::string& A);
+    llvm::Value* insertBinaryOperator(const std::string& varName, const llvm::Instruction::BinaryOps& op, const std::string& A, const std::string& B);
+    llvm::Instruction* call(const std::string& varName, llvm::ArrayRef<llvm::Value*> arguments={});
+    llvm::Instruction* call(llvm::ArrayRef<llvm::Value*> arguments={});
 };
 class ModuleWrapper {
     llvm::LLVMContext Context;
@@ -133,4 +145,3 @@ class ModuleWrapper {
     
     friend FunctionWrapper;
 };
-using namespace llvm;

@@ -20,37 +20,73 @@ FunctionWrapper::FunctionWrapper(ModuleWrapper* _module, llvm::Type* returnType,
 }
 FunctionWrapper::~FunctionWrapper() {}
 
-void FunctionWrapper::insertICmp(const std::string& varName, llvm::Value* A, const llvm::CmpInst::Predicate& op, llvm::Value* B) {
-    insert(varName, ICmpInst::Create(llvm::Instruction::OtherOps::ICmp, op, A, B, varName));
+llvm::Value* FunctionWrapper::getVarOrNumber(const std::string& str) {
+    return getVar(str);
 }
-void FunctionWrapper::insertGetElementPtr(const std::string& varName, llvm::Type* varType, const std::string& ptr, const std::initializer_list<llvm::Value*>& indices) {
-    insert(varName, llvm::GetElementPtrInst::Create(varType, getVar(ptr), indices, llvm::GEPNoWrapFlags::none(), varName, nullptr));
+llvm::Value* FunctionWrapper::insertAdd(const std::string& varName, const std::string& A, const std::string& B) {
+    return insertBinaryOperator(varName, llvm::Instruction::BinaryOps::Add, A, B);
 }
-void FunctionWrapper::insertLoad(const std::string& varName, llvm::Type* ptrType, const std::string& ptr) {
-    vars[varName] = new llvm::LoadInst(ptrType, getVar(ptr), varName, getBlock(activeBlock));
+llvm::Value* FunctionWrapper::insertSub(const std::string& varName, const std::string& A, const std::string& B) {
+    return insertBinaryOperator(varName, llvm::Instruction::BinaryOps::Sub, A, B);
+}
+llvm::Value* FunctionWrapper::insertMul(const std::string& varName, const std::string& A, const std::string& B) {
+    return insertBinaryOperator(varName, llvm::Instruction::BinaryOps::Mul, A, B);
+}
+llvm::Value* FunctionWrapper::insertUDiv(const std::string& varName, const std::string& A, const std::string& B) {
+    return insertBinaryOperator(varName, llvm::Instruction::BinaryOps::UDiv, A, B);
+}
+llvm::Value* FunctionWrapper::insertUMod(const std::string& varName, const std::string& A, const std::string& B) {
+    return insertBinaryOperator(varName, llvm::Instruction::BinaryOps::URem, A, B);
+}
+llvm::Value* FunctionWrapper::insertICmp(const std::string& varName, const std::string& A, const llvm::CmpInst::Predicate& op, const std::string& B) {
+    return insert(varName, llvm::ICmpInst::Create(llvm::Instruction::OtherOps::ICmp, op, getVarOrNumber(A), getVarOrNumber(B), varName));
+}
+llvm::Value* FunctionWrapper::insertGetElementPtr(const std::string& varName, llvm::Type* varType, const std::string& ptr, std::initializer_list<const char*> indices) {
+    std::vector<llvm::Value*> indicesValues;
+    indicesValues.reserve(indices.size()+1);
+    indicesValues.push_back(module->getI64(0));
+    for (const std::string& index : indices)
+        indicesValues.push_back(getVarOrNumber(index));
+    return insert(varName, llvm::GetElementPtrInst::Create(varType, getVar(ptr), indicesValues, llvm::GEPNoWrapFlags::none(), varName, nullptr));
+}
+llvm::Value* FunctionWrapper::insertLoad(const std::string& varName, llvm::Type* ptrType, const std::string& ptr) {
+    return vars[varName] = new llvm::LoadInst(ptrType, getVar(ptr), varName, getBlock(activeBlock));
 }
 void FunctionWrapper::insertStore(const std::string& varName, const std::string& ptr) {
-    insert(new StoreInst(getVar(varName), getVar(ptr), nullptr));
+    insert(new llvm::StoreInst(getVar(varName), getVar(ptr), nullptr));
 }
-void FunctionWrapper::insertBr(const std::string& branchBlockName) {
-    insert(llvm::BranchInst::Create(getBlock(branchBlockName)));
+llvm::Value* FunctionWrapper::insertBr(const std::string& branchBlockName) {
+    return insert(llvm::BranchInst::Create(getBlock(branchBlockName)));
 }
-void FunctionWrapper::insertBr(llvm::Value* condition, const std::string& trueBranchBlockName, const std::string& falseBranchBlockName) {
-    insert(llvm::BranchInst::Create(getBlock(trueBranchBlockName), getBlock(falseBranchBlockName), condition));
+llvm::Value* FunctionWrapper::insertBr(const std::string& condition, const std::string& trueBranchBlockName, const std::string& falseBranchBlockName) {
+    return insert(llvm::BranchInst::Create(getBlock(trueBranchBlockName), getBlock(falseBranchBlockName), getVarOrNumber(condition)));
 }
-void FunctionWrapper::insertCall(const std::string& varName, const std::string& function, std::initializer_list<llvm::Value*> arguments) {
-    insert(varName, module->getFunction(function).call(varName, arguments));
+llvm::Value* FunctionWrapper::insertCall(const std::string& varName, const std::string& function, std::initializer_list<const char*> arguments) {
+    std::vector<llvm::Value*> argumentValues;
+    argumentValues.reserve(arguments.size());
+    for (const std::string& arg : arguments)
+        argumentValues.push_back(getVarOrNumber(arg));
+    return insert(varName, module->getFunction(function).call(varName, argumentValues));
 }
-void FunctionWrapper::insertCall(const std::string& function, std::initializer_list<llvm::Value*> arguments) {
-    insert(module->getFunction(function).call(arguments));
+llvm::Value* FunctionWrapper::insertCall(const std::string& function, std::initializer_list<const char*> arguments) {
+    std::vector<llvm::Value*> argumentValues;
+    argumentValues.reserve(arguments.size());
+    for (const std::string& arg : arguments)
+        argumentValues.push_back(getVarOrNumber(arg));
+    return insert(module->getFunction(function).call(argumentValues));
 }
-void FunctionWrapper::insertReturn(llvm::Value* value) {
-    insert(llvm::ReturnInst::Create(module->Context, value));
+llvm::Value* FunctionWrapper::insertReturn(const std::string& value) {
+    return insert(llvm::ReturnInst::Create(module->Context, getVarOrNumber(value)));
 }
 
 llvm::Value* FunctionWrapper::getVar(const std::string& name) {
-    if (vars.count(name) == 0) return module->getVar(name);
-    return vars[name];
+    try {
+        return module->getI32(std::stoi(name));
+    } catch(const std::invalid_argument& e) {
+        if (vars.count(name) == 0) return module->getVar(name);
+        return vars[name];
+    }
+    
 }
 void FunctionWrapper::addBlock(const std::string& name) {
     blocks.emplace(name, llvm::BasicBlock::Create(module->Context, name, function));
@@ -65,27 +101,27 @@ void FunctionWrapper::setActiveBlock(const std::string& name) {
 }
 
 
-void FunctionWrapper::insert(const std::string& varName, llvm::Instruction* instr) {
-    vars[varName] = insert(instr);
-}
 llvm::Instruction* FunctionWrapper::insert(llvm::Instruction* instr) {
     if (activeBlock == "_____") setActiveBlock("");
     llvm::BasicBlock*& block = blocks[activeBlock];
     instr->insertInto(block, block->end());
     return instr;
 }
-void FunctionWrapper::insertUnaryOperator(const std::string& varName, const llvm::Instruction::UnaryOps& op, llvm::Value* A) {
-    insert(varName, UnaryOperator::Create(op, A, varName));
+llvm::Value* FunctionWrapper::insert(const std::string& varName, llvm::Instruction* instr) {
+    return vars[varName] = insert(instr);
 }
-void FunctionWrapper::insertBinaryOperator(const std::string& varName, const llvm::Instruction::BinaryOps& op, llvm::Value* A, llvm::Value* B) {
-    insert(varName, BinaryOperator::Create(op, A, B, varName));
+llvm::Value* FunctionWrapper::insertUnaryOperator(const std::string& varName, const llvm::Instruction::UnaryOps& op, const std::string& A) {
+    return insert(varName, llvm::UnaryOperator::Create(op, getVarOrNumber(A), varName));
 }
-llvm::Instruction* FunctionWrapper::call(const std::string& varName, std::initializer_list<llvm::Value*> arguments) {
+llvm::Value* FunctionWrapper::insertBinaryOperator(const std::string& varName, const llvm::Instruction::BinaryOps& op, const std::string& A, const std::string& B) {
+    return insert(varName, llvm::BinaryOperator::Create(op, getVarOrNumber(A), getVarOrNumber(B), varName));
+}
+llvm::Instruction* FunctionWrapper::call(const std::string& varName, llvm::ArrayRef<llvm::Value*> arguments) {
     llvm::CallInst* instr = llvm::CallInst::Create(function, arguments, varName);
     instr->setTailCall();
     return instr;
 }
-llvm::Instruction* FunctionWrapper::call(std::initializer_list<llvm::Value*> arguments) {
+llvm::Instruction* FunctionWrapper::call(llvm::ArrayRef<llvm::Value*> arguments) {
     llvm::CallInst* instr = llvm::CallInst::Create(function, arguments);
     instr->setTailCall();
     return instr;
@@ -112,12 +148,7 @@ ModuleWrapper::ModuleWrapper(const std::string& _name) : name(_name) {
     fp128_t = llvm::Type::getFP128Ty(Context);
     
     Module = new llvm::Module(name, Context);
-    // for some reason this part of the libr ary works slightly different on each
-#if defined(_WINDOWS) and _WINDOWS==1
     Module->setTargetTriple(llvm::Triple(llvm::sys::getDefaultTargetTriple()));
-#elif defined (_LINUX) and _LINUX==1
-    Module->setTargetTriple(llvm::sys::getDefaultTargetTriple());
-#endif
 }
 ModuleWrapper::~ModuleWrapper() {
     std::error_code EC;
@@ -135,8 +166,8 @@ FunctionWrapper& ModuleWrapper::getFunction(const std::string& name) {
     return *functions[name];
 }
 void ModuleWrapper::createGlobalStr(const std::string& varName, const std::string& value) {
-    GlobalVariable* str = new GlobalVariable(*Module, llvm::ArrayType::get(char_t, static_cast<unsigned int>(value.size())+1u), true, GlobalValue::PrivateLinkage, 0, varName);
-    str->setInitializer(ConstantDataArray::getString(Context, value, true));
+    llvm::GlobalVariable* str = new llvm::GlobalVariable(*Module, llvm::ArrayType::get(char_t, static_cast<unsigned int>(value.size())+1u), true, llvm::GlobalValue::PrivateLinkage, 0, varName);
+    str->setInitializer(llvm::ConstantDataArray::getString(Context, value, true));
     globals[varName] = str;
 }
 llvm::Value* ModuleWrapper::getVar(const std::string& name) {
@@ -144,19 +175,19 @@ llvm::Value* ModuleWrapper::getVar(const std::string& name) {
     return globals[name];
 }
 llvm::Value* ModuleWrapper::getI32(const int& i) {
-    if (i32constants.count(i) == 0) i32constants[i] = ConstantInt::get(i32_t, i);
+    if (i32constants.count(i) == 0) i32constants[i] = llvm::ConstantInt::get(i32_t, i);
     return i32constants[i];
 }
 llvm::Value* ModuleWrapper::getI64(const long long int& i) {
-    if (i64constants.count(i) == 0) i64constants[i] = ConstantInt::get(i64_t, i);
+    if (i64constants.count(i) == 0) i64constants[i] = llvm::ConstantInt::get(i64_t, i);
     return i64constants[i];
 }
 llvm::Value* ModuleWrapper::getUI32(const unsigned int& i) {
-    if (i32constants.count(i) == 0) i32constants[i] = ConstantInt::get(i32_t, i);
+    if (i32constants.count(i) == 0) i32constants[i] = llvm::ConstantInt::get(i32_t, i);
     return i32constants[i];
 }
 llvm::Value* ModuleWrapper::getUI64(const unsigned long long int& i) {
-    if (i64constants.count(i) == 0) i64constants[i] = ConstantInt::get(i64_t, i);
+    if (i64constants.count(i) == 0) i64constants[i] = llvm::ConstantInt::get(i64_t, i);
     return i64constants[i];
 }
 
@@ -198,22 +229,22 @@ int main(int argc, char** argv) {
     addStdLib(module);
     module.createGlobalStr("str0", "program requires at least 1 argument.");
     FunctionWrapper& mainFunc = module.createFunction(module.i32_t, "main", {{"argc", module.i32_t},{"argv", module.ptr_t}});
-    mainFunc.insertICmp("cond", mainFunc.getVar("argc"), llvm::ICmpInst::Predicate::FCMP_ULT, module.getUI32(2));
-    mainFunc.insertBr(mainFunc.getVar("cond"), "err.0", "if.0");
+    mainFunc.insertICmp("cond", "argc", llvm::ICmpInst::Predicate::FCMP_ULT, "2");
+    mainFunc.insertBr("cond", "err.0", "if.0");
 
     mainFunc.setActiveBlock("if.0");
-    mainFunc.insertGetElementPtr("numStrP", llvm::ArrayType::get(module.ptr_t, 0), "argv", { module.getUI64(0), module.getUI64(1) });
+    mainFunc.insertGetElementPtr("numStrP", llvm::ArrayType::get(module.ptr_t, 0), "argv", { "1" });
     mainFunc.insertLoad("numStr", module.ptr_t, "numStrP");
-    mainFunc.insertCall("num", "strToUInt", { mainFunc.getVar("numStr") });
-    mainFunc.insertBinaryOperator("output", Instruction::Add, mainFunc.getVar("num"), module.getUI32(5));
-    mainFunc.insertCall("printlnUInt", { mainFunc.getVar("output") });
+    mainFunc.insertCall("num", "strToUInt", { "numStr" });
+    mainFunc.insertAdd("output", "num", "5");
+    mainFunc.insertCall("printlnUInt", { "output" });
     mainFunc.insertBr("ret");
 
     mainFunc.setActiveBlock("err.0");
-    mainFunc.insertCall("printlnStr",{ module.getVar("str0") });
+    mainFunc.insertCall("printlnStr",{ "str0" });
     mainFunc.insertBr("ret");
 
     mainFunc.setActiveBlock("ret");
-    mainFunc.insertReturn(module.getUI32(0));
+    mainFunc.insertReturn("0");
     return 0;
 }
